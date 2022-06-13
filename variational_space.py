@@ -3,42 +3,6 @@ Contains a class for the variational space for the NiO2 layer
 and functions used to represent states as dictionaries.
 Distance (L1-norm) between any two particles(holes) cannot > cutoff Mc
 
-George's email on Jul.6, 2021:
-If indeed you cont have an electron hole pair as in the first case i.e. only 2 holes and not 3 holes plus an electron
-then you cover all of space since you can have only triplets and singlets and S=0 or 1 and these states are all covered by
-considering only the Sz=0 of the singlet and the triplet i.e. up down + or- down up.
-However with 3 holes and 1 electron the three holes could be in a state S=3/2 or S=1/2 and the coupling with the electron 
-could get you to S=2,1,0. However if there is an electron in Z then there must be a hole in dz2 so at least one of the 3 holes
-must be dz2 and it must have the same spin as the electron in Z. 
-As long as we neglect more than one electron hole pair and not more than 2 ligand holes then the above is correct. If we
-consider also 3 ligand hole states say starting from d8x2z2, we can end up with d10Lx2Lz2Lz2Z but then the spin of one of the Lz2 must be the same as the spin of the electron in Z.
-This should also limit your Hilbert space needed? I supppose that you are working in the space with S as a good quantum number i.e. two hole states are singlets or triplets and the only 3 hole states must involve a Z electron and a hole of z2 symmetry and with a spin in the same direction as the Z electron.
-
-Previous analysis of VS in terms of spin symmetry:
-Because we allow 1 e-h pair at most, plus a doped hole, VS consists of:
-1. two up_up holes (same as NiO2 model considering two holes)
-2. two up_dn holes (same as NiO2 model considering two holes)
-3. two dn_up holes (same as NiO2 model considering two holes)
-4. two dn_dn holes (same as NiO2 model considering two holes)
-
-5.  two up_up holes + eh pair (Nd up electron + paired dn hole)
-6.  two up_up holes + eh pair (Nd dn electron + paired up hole)
-7.  two up_dn holes + eh pair (Nd up electron + paired dn hole)
-8.  two up_dn holes + eh pair (Nd dn electron + paired up hole)
-9.  two dn_up holes + eh pair (Nd up electron + paired dn hole)
-10. two dn_up holes + eh pair (Nd dn electron + paired up hole)
-11. two dn_dn holes + eh pair (Nd up electron + paired dn hole)
-12. two dn_dn holes + eh pair (Nd dn electron + paired up hole)
-
-To reduce VS size, see H_matrix_reducing_VS.pdf for more details !
-
-The simple rule is starting from d8, d9L, d10L2 with up and dn spins 
-(up up and dn dn can be neglected or precisely in other unconnected subspace of VS). 
-
-Then in the presence of e-h pair, the only constraint for spin is that 
-the four spins (1 el and 3 holes) should form a list of up up dn dn. 
-
-Enforce e electron has up spin ?!
 '''
 import parameters as pam
 import lattice as lat
@@ -73,10 +37,7 @@ def create_state(slabel):
     assert not (((x3,y3,z3))==(x2,y2,z2) and s3==s2 and orb3==orb2)
    
     assert(check_in_vs_condition1(x1,y1,x2,y2,x3,y3))
-    #assert(check_in_vs_condition(xe,ye,x1,y1))
-    #assert(check_in_vs_condition(xe,ye,x2,y2))
-    
-    
+
     state = {'hole1_spin' : s1,\
              'hole1_orb'  : orb1,\
              'hole1_coord': (x1,y1,z1),\
@@ -104,17 +65,20 @@ def reorder_state(slabel):
     if (x2,y2)<(x1,y1):
         state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
         phase = -1.0
-
+        
     # note that z1 can differ from z2 in the presence of apical pz orbital
     elif (x1,y1)==(x2,y2):           
-        if s1==s2:
+        if s1==s2 and z1==z2:
             o12 = list(sorted([orb1,orb2]))
             if o12[0]==orb2:
                 state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
                 phase = -1.0  
-        elif s1=='dn' and s2=='up':
+        elif s1=='dn' and s2=='up' and z1==z2:
             state_label = ['up',orb2,x2,y2,z2,'dn',orb1,x1,y1,z1]
             phase = -1.0
+        elif z1==0 and z2==1:
+            state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
+            phase = -1.0  
             
     return state_label, phase
                 
@@ -229,7 +193,11 @@ def check_in_vs_condition1(x1,y1,x2,y2,x3,y3):
     else:
         return True
 
-def check_Pauli(s1,orb1,x1,y1,z1,s2,orb2,x2,y2,z2,s3,orb3,x3,y3,z3):
+def check_Pauli(slabel):
+    s1 = slabel[0]; orb1 = slabel[1]; x1 = slabel[2]; y1 = slabel[3]; z1 = slabel[4];
+    s2 = slabel[5]; orb2 = slabel[6]; x2 = slabel[7]; y2 = slabel[8]; z2 = slabel[9];
+    s3 = slabel[10]; orb3 = slabel[11]; x3 = slabel[12]; y3 = slabel[13]; z3 = slabel[14];
+    
     if (s1==s2 and orb1==orb2 and x1==x2 and y1==y2 and z1==z2) or \
         (s1==s3 and orb1==orb3 and x1==x3 and y1==y3 and z1==z3) or \
         (s3==s2 and orb3==orb2 and x3==x2 and y3==y2 and z3==z2):
@@ -277,7 +245,7 @@ class VariationalSpace:
         #self.print_VS()
 
     def print_VS(self):
-        for i in xrange(0,self.dim):
+        for i in range(0,self.dim):
             state = self.get_state(self.lookup_tbl[i])                
             ts1 = state['hole1_spin']
             ts2 = state['hole2_spin']
@@ -288,7 +256,7 @@ class VariationalSpace:
             tx1, y1, z1 = state['hole1_coord']
             tx2, y2, z2 = state['hole2_coord']
             tx3, y3, z3 = state['hole3_coord']
-            print (i, ts1,torb1,tx1,ty1,ts2,torb2,tx2,ty2,ts3,torb3,tx3,ty3)
+            print (i, ts1,torb1,tx1,ty1,tz1,ts2,torb2,tx2,ty2,ts3,torb3,tx3,ty3,tz3)
                 
     def create_lookup_tbl(self):
         '''
@@ -340,38 +308,27 @@ class VariationalSpace:
                                                         for s1 in ['up','dn']:
                                                             for s2 in ['up','dn']:   
                                                                 for s3 in ['up','dn']: 
-                                                                    if pam.VS_only_up_dn==1:
-                                                                        if s1==s2==s3:
-                                                                            continue
-                                                                    # try only keep Sz=1 triplet states
-                                                                    if pam.VS_only_up_up==1:
-                                                                        if not s1==s2==s3=='up':
+                                                                    # assume two holes from undoped d9d9 is up-dn
+                                                                    if pam.reduce_VS==1:
+                                                                        sss = sorted([s1,s2,s3])
+                                                                        if sss!=['dn','dn','up'] and \
+                                                                           sss!=['dn','up','up']:
                                                                             continue
 
                                                                     # neglect d7 state !!
-                                                                    if (orb1 in pam.Ni_orbs or orb1 in pam.Cu_orbs) and \
-                                                                       (orb2 in pam.Ni_orbs or orb2 in pam.Cu_orbs) and \
-                                                                       (orb3 in pam.Ni_orbs or orb3 in pam.Cu_orbs):
+                                                                    if orb1 in pam.Ni_Cu_orbs  and \
+                                                                       orb2 in pam.Ni_Cu_orbs  and \
+                                                                       orb3 in pam.Ni_Cu_orbs  and \
+                                                                       uz==vz==tz:
                                                                         continue
 
-#                                                                     # assume one hole is up (see no-eh case)
-#                                                                     if pam.reduce_VS==1:
-#                                                                         sss = sorted([se,s1,s2,s3])
-#                                                                         if pam.eh_spin_def=='same':
-#                                                                             if sss!=['dn','dn','dn','up'] and \
-#                                                                                sss!=['dn','up','up','up']:
-#                                                                                 continue
-#                                                                         elif pam.eh_spin_def=='oppo':
-#                                                                             if sss!=['dn','dn','up','up']:
-#                                                                                 continue
-
                                                                     # consider Pauli principle
-                                                                    if not check_Pauli(s1,orb1,ux,uy,uz,\
-                                                                                       s2,orb2,vx,vy,vz,\
-                                                                                       s3,orb3,tx,ty,tz):
-                                                                        continue 
+                                                                    slabel = [s1,orb1,ux,uy,uz,\
+                                                                              s2,orb2,vx,vy,vz,\
+                                                                              s3,orb3,tx,ty,tz]
+                                                                    if not check_Pauli(slabel):
+                                                                        continue  
 
-                                                                    slabel = [s1,orb1,ux,uy,uz,s2,orb2,vx,vy,vz,s3,orb3,tx,ty,tz]
                                                                     state = create_state(slabel)
                                                                     canonical_state,_ = make_state_canonical(state)
 
@@ -451,9 +408,6 @@ class VariationalSpace:
         N2 = N*N
         N3 = N2*N
 
-
-#             off1 = 16*N2*B4 # a bit bigger than needed
-            
         s1 = state['hole1_spin']
         s2 = state['hole2_spin']
         s3 = state['hole3_spin']
@@ -471,7 +425,6 @@ class VariationalSpace:
         o2 = lat.orb_int[orb2]
         o3 = lat.orb_int[orb3]
 
-        # note the final +off1 to avoid mixing with no_eh state labeled as 0
         uid =i1 + 2*i2 +4*i3  +8*z1 +16*z2 +32*z3 +64*o1 +64*N*o2 +64*N2*o3 + 64*N3*( (y1+s) + (x1+s)*B1 + (y2+s)*B2 + (x2+s)*B3 + (y3+s)*B4 + (x3+s)*B5)
 
         # check if uid maps back to the original state, namely uid's uniqueness
@@ -503,12 +456,7 @@ class VariationalSpace:
         B5 = B1*B4
         N2 = N*N
         N3 = N2*N
-#         off1 = 16*N2*B4
-        #off1 = 16*N2*B1*(B3+B2+B1)*2
         
-
-#             uid_ = uid - off1
-
         x3 = int(uid/(64*N3*B5))- s 
         uid_ = uid % (64*N3*B5)
         y3 = int(uid_/(64*N3*B4))- s 

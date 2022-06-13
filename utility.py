@@ -67,55 +67,102 @@ def get_statistic_2orb(o1,o2):
     Get how many orbs are on Ni, O separately
     and write info into dorbs and porbs
     '''  
-    nNi = 0; nO = 0;nCu = 0; dorbs=[]; porbs=[]
-    if o1 in pam.Ni_orbs:
-        nNi += 1; dorbs.append(o1)
-    elif o1 in pam.Cu_orbs:
-        nCu += 1; dorbs.append(o1)    
+    nNi_Cu = 0; nO = 0; dorbs=[]; porbs=[]
+    if o1 in pam.Ni_Cu_orbs:
+        nNi_Cu += 1; dorbs.append(o1)   
     elif o1 in pam.O_orbs:
         nO += 1; porbs.append(o1)
-    if o2 in pam.Ni_orbs:
-        nNi += 1; dorbs.append(o2)
-    elif o2 in pam.Cu_orbs:
-        nCu += 1; dorbs.append(o2)  
+    if o2 in pam.Ni_Cu_orbs:
+        nNi_Cu += 1; dorbs.append(o2)
     elif o2 in pam.O_orbs:
-        nO += 1; porbs.append(o2)
-        
+        nO += 1; porbs.append(o2)     
 
     assert(nO ==len(porbs))
-    assert((nNi+nCu) ==len(dorbs))
+    assert(nNi_Cu ==len(dorbs))
     
-    return nNi, nO, nCu, dorbs, porbs
+    return nNi_Cu, nO, dorbs, porbs
+
 
 def get_statistic_3orb(o1,o2,o3):
     '''
     Get how many orbs are on Ni, O separately
     and write info into dorbs and porbs
     '''  
-    nNi = 0; nO = 0;nCu = 0; dorbs=[]; porbs=[]
-    if o1 in pam.Ni_orbs:
-        nNi += 1; dorbs.append(o1)
-    elif o1 in pam.Cu_orbs:
-        nCu += 1; porbs.append(o1)    
+    nNi_Cu = 0; nO = 0; dorbs=[]; porbs=[]
+    if o1 in pam.Ni_Cu_orbs:
+        nNi_Cu += 1; dorbs.append(o1)   
     elif o1 in pam.O_orbs:
         nO += 1; porbs.append(o1)
-    if o2 in pam.Ni_orbs:
-        nNi += 1; dorbs.append(o2)
-    elif o2 in pam.Cu_orbs:
-        nCu += 1; porbs.append(o2)  
+    if o2 in pam.Ni_Cu_orbs:
+        nNi_Cu += 1; dorbs.append(o2)
     elif o2 in pam.O_orbs:
-        nO += 1; porbs.append(o2)
-    if o3 in pam.Ni_orbs:
-        nNi += 1; dorbs.append(o3)
-    elif o3 in pam.Cu_orbs:
-        nCu += 1; porbs.append(o3)  
+        nO += 1; porbs.append(o2)     
+    if o3 in pam.Ni_Cu_orbs:
+        nNi_Cu += 1; dorbs.append(o3)
     elif o3 in pam.O_orbs:
-        nO += 1; porbs.append(o3)
+        nO += 1; porbs.append(o3)  
         
-    assert(nNi+nCu==len(dorbs))
     assert(nO ==len(porbs))
+    assert(nNi_Cu ==len(dorbs))
     
-    return nNi, nCu, nO, dorbs, porbs
+    return nNi_Cu, nO, dorbs, porbs
+
+def get_orb_edep(orb,z,epCu,epNi):
+    '''
+    resarch for orb's edep
+    ''' 
+    diag_el = 0
+    if orb in pam.Ni_Cu_orbs and z==1: 
+        diag_el += pam.edNi[orb]
+    elif orb in pam.Ni_Cu_orbs and z==0: 
+        diag_el += pam.edCu[orb]  
+    elif orb in pam.O_orbs and z==1: 
+        diag_el += epNi
+    elif orb in pam.O_orbs and z==0: 
+        diag_el += epCu
+    return diag_el
+    
+def get_d_double_3hole(VS, i):
+    '''
+    Determine which two holes are doubly occupancy for ith 3hole state
+    '''  
+    state = VS.get_state(VS.lookup_tbl[i])
+    s1 = state['hole1_spin']
+    s2 = state['hole2_spin']
+    s3 = state['hole3_spin']
+    o1 = state['hole1_orb']
+    o2 = state['hole2_orb']
+    o3 = state['hole3_orb']
+    x1, y1, z1 = state['hole1_coord']
+    x2, y2, z2 = state['hole2_coord']
+    x3, y3, z3 = state['hole3_coord']
+    
+    # find out which two holes are on Ni/Cu
+    # idx is to label which hole is not on Ni/Cu
+    if (x1, y1, z1)==(x2, y2, z2):
+        Lspin=s3; Lorb=o3; Lpos=[x3, y3, z3]
+        idx=3
+        dpos = [x1, y1, z1]
+        o12 = sorted([o1,o2])
+        o12 = tuple(o12)
+    elif (x1, y1, z1)==(x3, y3, z3):
+        Lspin=s2; Lorb=o2; Lpos=[x2, y2, z2]
+        idx=2
+        s2 = s3
+        dpos = [x1, y1, z1]
+        o12 = sorted([o1,o3])
+        o12 = tuple(o12)
+    elif (x2, y2, z2)==(x3, y3, z3):
+        Lspin=s1; Lorb=o1; Lpos=[x1, y1, z1]
+        idx=1
+        s1 = s2
+        s2 = s3
+        dpos = [x2, y2, z2]
+        o12 = sorted([o2,o3])
+        o12 = tuple(o12)
+            
+    return s1, s2, o12, dpos, idx, Lspin, Lorb, Lpos
+
 
 def oppo_spin(s1):
     if s1=='up':

@@ -2,7 +2,7 @@ import math
 import numpy as np
 M_PI = math.pi
 
-Mc = 2
+Mc = 1
 
 # Note that Ni-d and O-p orbitals use hole language
 # while Nd orbs use electron language
@@ -16,21 +16,26 @@ ed = {'d3z2r2': 1.2,\
       'dxy'   : 0.3,\
       'dxz'   : 0.7,\
       'dyz'   : 0.7}
-ed = {'d3z2r2': 0.0,\
+edCu = {'d3z2r2': 0.0,\
       'dx2y2' : 0.0,\
       'dxy'   : 0.0,\
       'dxz'   : 0.0,\
       'dyz'   : 0.0}
-epCus = np.arange(3.0, 3.01, 1.0)
-epNis = np.arange(7.0, 7.01, 1.0)
+edNi = edCu
 
-As = np.arange(6.0, 6.01, 2.0)
+epNis = np.arange(100.0, 100.01, 1.0)
+epCus = np.arange(100.0, 100.01, 1.0)
+
+ANis = np.arange(6.0, 6.01, 2.0)
+ACus = np.arange(6.0, 6.01, 1.0)
+
 B = 0.15
 C = 0.58
 #As = np.arange(100, 100.1, 1.0)
-#As = np.arange(0.0, 0.01, 1.0)
-#B = 0
-#C = 0
+# ANis = np.arange(0.0, 0.01, 1.0)
+# ACus = np.arange(0.0, 0.01, 1.0)
+# B = 0
+# C = 0
 
 # Note: tpd and tpp are only amplitude signs are considered separately in hamiltonian.py
 # Slater Koster integrals and the overlaps between px and d_x^2-y^2 is sqrt(3) bigger than between px and d_3z^2-r^2 
@@ -52,26 +57,25 @@ elif Norb==9 or Norb==11:
     vals = np.linspace(1.3, 1.3, num=1, endpoint=True)
     pdss = np.asarray(vals)*2./np.sqrt(3)
     pdps = np.asarray(pdss)*np.sqrt(3)/4.
-    #pdss = [0.01]
-    #pdps = [0.01]
+    pdss = [0.01]
+    pdps = [0.01]
     #------------------------------------------------------------------------------
     # note that tpp ~ (pps+ppp)/2
     # because 3 or 7 orbital bandwidth is 8*tpp while 9 orbital has 4*(pps+ppp)
     pps = 0.9
     ppp = 0.2
          
-    #pps = 0.00001
-    #ppp = 0.00001
+    pps = 0.01
+    ppp = 0.01
 
-tz = 0.2                                                                               #gai
+tzs =np.arange(0.01, 0.1, 1)                                                                             #gai
     
 wmin = -8; wmax = 20
 eta = 0.1
 Lanczos_maxiter = 600
 
 # restriction on variational space
-VS_only_up_dn = 1
-VS_only_up_up = 0
+reduce_VS = 1
 
 if_H0_rotate_byU = 1
 basis_change_type = 'd_double' # 'all_states' or 'd_double'
@@ -90,9 +94,7 @@ if if_get_ground_state==1:
     Neval = 10
 if_compute_Aw_dd_total = 0
 
-Cu_orbs = ['dx2y2','dxy','dxz','dyz','d3z2r2']
-                                                                                                 #修
-Ni_orbs = ['dx2y2','dxy','dxz','dyz','d3z2r2']
+Ni_Cu_orbs = ['dx2y2','dxy','dxz','dyz','d3z2r2']
 #Ni_orbs = ['dx2y2','d3z2r2']
     
 if Norb==7:
@@ -106,16 +108,14 @@ elif Norb==11:
     O2_orbs  = ['px2','py2','pz2']
 O_orbs = O1_orbs + O2_orbs
 # sort the list to facilliate the setup of interaction matrix elements
-Ni_orbs.sort()
-Cu_orbs.sort()
+Ni_Cu_orbs.sort()
 O1_orbs.sort()
 O2_orbs.sort()
 O_orbs.sort()
-print ("Cu_orbs = ", Cu_orbs)
-print ("Ni_orbs = ", Ni_orbs)
+print ("Ni_Cu_orbs = ", Ni_Cu_orbs)
 print ("O1_orbs = ",  O1_orbs)
 print ("O2_orbs = ",  O2_orbs)
-orbs = Ni_orbs + O_orbs 
+orbs = Ni_Cu_orbs + O_orbs 
 #assert(len(orbs)==Norb)
 
 Upps = [0]

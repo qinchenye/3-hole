@@ -204,6 +204,35 @@ def set_tpd_tpp(Norb,tpd,tpp,pds,pdp,pps,ppp):
                           ('DR','pz1','pz2'):  ppp}
         
     return tpd_nn_hop_dir, tpd_orbs, tpd_nn_hop_fac, tpp_nn_hop_fac
+
+def set_tz(Norb,tz):                            #条件Ni向下
+    if pam.Norb==7:
+        tz_fac ={('px','px'):  tz,\
+                 ('py','py'):  tz,\
+                 ('d3z2r2','d3z2r2'):  1.2*tz,\
+                 ('dx2y2', 'dx2y2'):  tz,\
+                 ('dxy',   'dxy'):  tz}
+    if pam.Norb==9:
+        tz_fac ={('px1','px1'):  tz,\
+                 ('px2','px2'):  tz,\
+                 ('py1','py1'):  tz,\
+                 ('py2','py2'):  tz,\
+                 ('d3z2r2','d3z2r2'):  1.2*tz,\
+                 ('dx2y2', 'dx2y2'):  tz,\
+                 ('dxy',   'dxy'):  tz}
+    if pam.Norb==11:
+        tz_fac ={('px1','px1'):  tz,\
+                 ('px2','px2'):  tz,\
+                 ('py1','py1'):  tz,\
+                 ('py2','py2'):  tz,\
+                 ('pz1','pz1'): -1.2*tz,\
+                 ('pz2','pz2'): -1.2*tz,\
+                 ('d3z2r2','d3z2r2'):  1.2*tz,\
+                 ('dx2y2', 'dx2y2'):  tz,\
+                 ('dxy',   'dxy'):  tz}
+        
+    return tz_fac
+    
         
 def get_interaction_mat(A, sym):
     '''
@@ -255,6 +284,10 @@ def get_interaction_mat(A, sym):
         Sz_set = [0]
         AorB_sym = 1
         fac = np.sqrt(2)
+        
+        # TODO: record matrix size
+        Nmax = 4
+        
         state_order = {('d3z2r2','d3z2r2'): 0,\
                        ('dx2y2','dx2y2')  : 1,\
                        ('dxy','dxy')      : 2,\
@@ -476,7 +509,7 @@ def create_tpd_nn_matrix(VS, tpd_nn_hop_dir, tpd_orbs, tpd_nn_hop_fac):
 
         if orb3 in tpd_orbs:
             for dir_ in tpd_nn_hop_dir[orb3]:
-                tx, ty, tz = directions_to_vecs[dir_]
+                vx, vy, vz = directions_to_vecs[dir_]
                 orbs3 = lat.get_unit_cell_rep(x3+vx, y3+vy, z3+vz)
                 if orbs3 == ['NotOnSublattice']:
                     continue
@@ -613,7 +646,7 @@ def create_tpp_nn_matrix(VS,tpp_nn_hop_fac):
         # hole 3 hops, only p-orbitals has t_pp 
         if orb3 in pam.O_orbs:
             for dir_ in tpp_nn_hop_dir:
-                tx, ty, tz = directions_to_vecs[dir_]
+                vx, vy, vz = directions_to_vecs[dir_]
                 orbs3 = lat.get_unit_cell_rep(x3+vx, y3+vy, z3+vz)
 
                 if orbs3!=pam.O1_orbs and orbs3!=pam.O2_orbs:
@@ -649,10 +682,10 @@ def create_tpp_nn_matrix(VS,tpp_nn_hop_fac):
 
     return out
 
-def create_tz_matrix(VS,tz):
+def create_tz_matrix(VS,tz_fac):
     '''
-    只考虑直上直下
-    假设层间跃迁不取决于轨道
+    Just think straight up and down
+    It is assumed that the interlayer transition does not depend on the orbit
     '''    
     print ("start create_tz_matrix")
     print ("==========================")
@@ -661,6 +694,7 @@ def create_tz_matrix(VS,tz):
     data = []
     row = []
     col = []
+    tz_orbs = tz_fac.keys()
     for i in range(0,dim):
         start_state = VS.get_state(VS.lookup_tbl[i])
         
@@ -683,19 +717,25 @@ def create_tz_matrix(VS,tz):
             continue
 
         # consider t_pd for all cases; when up hole hops, dn hole should not change orb
-        for o1 in orbs1:
+        for o1 in orbs1:          
+            if o1!=orb1:
+                continue
+     
             # consider Pauli principle
             if s1==s2 and o1==orb2 and (x1,y1,1-z1)==(x2,y2,z2):
                 continue
             if s1==s3 and o1==orb3 and (x1,y1,1-z1)==(x3,y3,z3):
                 continue
             
-            slabel = [s1,o1,x1,y1,1-z1,s2,orb2,x2,y2,z2,s3,orb3,x3,y3,z3]
-            tmp_state = vs.create_state(slabel)
-            new_state,ph = vs.make_state_canonical(tmp_state)
-            #new_state,ph = vs.make_state_canonical_old(tmp_state)
+            o12 = [o1,orb1]
+            o12 = tuple(o12)
+            if o12 in tz_orbs:
+                slabel = [s1,o1,x1,y1,1-z1,s2,orb2,x2,y2,z2,s3,orb3,x3,y3,z3]
+                tmp_state = vs.create_state(slabel)
+                new_state,ph = vs.make_state_canonical(tmp_state)
+                #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
-            set_matrix_element(row,col,data,new_state,i,VS,tz*ph)
+                set_matrix_element(row,col,data,new_state,i,VS,tz_fac[o12]*ph)
 
         # hole 2 hops; some d-orbitals might have no tpd
         orbs2 = lat.get_unit_cell_rep(x2, y2, 1-z2)
@@ -704,38 +744,49 @@ def create_tz_matrix(VS,tz):
 
         # consider t_pd for all cases; when up hole hops, dn hole should not change orb
         for o2 in orbs2:
+            if o2!=orb2:
+                continue
+     
             # consider Pauli principle
-            if s1==s2 and orb1==o2 and (x1,y1,z1)==(x2,y2,1-z2):
+            if s2==s3 and o2==orb3 and (x2,y2,1-z2)==(x3,y3,z3):
                 continue
-            if s3==s2 and orb3==o2 and (x3,y3,z3)==(x2,y2,1-z2):
+            if s2==s1 and o2==orb1 and (x2,y2,1-z2)==(x1,y1,z1):
                 continue
+            
+            o12 = [o2,orb2]
+            o12 = tuple(o12)
+            if o12 in tz_orbs:
+                slabel = [s1,orb1,x1,y1,z1,s2,o2,x2,y2,1-z2,s3,orb3,x3,y3,z3]
+                tmp_state = vs.create_state(slabel)
+                new_state,ph = vs.make_state_canonical(tmp_state)
+                #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
-            slabel = [s1,orb1,x1,y1,z1,s2,o2,x2,y2,1-z2,s3,orb3,x3,y3,z3]
-            tmp_state = vs.create_state(slabel)
-            new_state,ph = vs.make_state_canonical(tmp_state)
-            #new_state,ph = vs.make_state_canonical_old(tmp_state)
-
-            set_matrix_element(row,col,data,new_state,i,VS,tz*ph)
+                set_matrix_element(row,col,data,new_state,i,VS,tz_fac[o12]*ph)
  
         # hole 3 hops; some d-orbitals might have no tpd
-        orbs3 = lat.get_unit_cell_rep(x2, y2, 1-z2)
+        orbs3 = lat.get_unit_cell_rep(x3, y3, 1-z3)
         if orbs3 == ['NotOnSublattice']:
             continue
 
         for o3 in orbs3:
+            if o3!=orb3:
+                continue
+     
             # consider Pauli principle
-            if s1==s3 and orb1==o3 and (x1,y1,z1)==(x3,y3,1-z3):
+            if s3==s1 and o3==orb1 and (x3,y3,1-z3)==(x1,y1,z1):
                 continue
-            if s2==s3 and orb2==o3 and (x2,y2,z2)==(x3,y3,1-z3):
+            if s3==s2 and o3==orb2 and (x3,y3,1-z3)==(x2,y2,z2):
                 continue
-                
-            slabel = [s1,orb1,x1,y1,z1,s2,orb2,x2,y2,z2,s3,o3,x3,y3,1-z3]
-            tmp_state = vs.create_state(slabel)
-            new_state,ph = vs.make_state_canonical(tmp_state)
-            #new_state,ph = vs.make_state_canonical_old(tmp_state)
-
-            set_matrix_element(row,col,data,new_state,i,VS,tz*ph)     
             
+            o12 = [o3,orb3]
+            o12 = tuple(o12)
+            if o12 in tz_orbs:
+                slabel = [s1,orb1,x1,y1,z1,s2,orb2,x2,y2,z2,s3,o3,x3,y3,1-z3]
+                tmp_state = vs.create_state(slabel)
+                new_state,ph = vs.make_state_canonical(tmp_state)
+                #new_state,ph = vs.make_state_canonical_old(tmp_state)
+
+                set_matrix_element(row,col,data,new_state,i,VS,tz_fac[o12]*ph)
 
     row = np.array(row)
     col = np.array(col)
@@ -747,8 +798,8 @@ def create_tz_matrix(VS,tz):
     
     return out
 
-
-def create_edep_diag_matrix(VS,A,epCu,epNi):
+   
+def create_edep_diag_matrix(VS,ANi,ACu,epCu,epNi):
     '''
     Create diagonal part of the site energies
     '''    
@@ -759,9 +810,8 @@ def create_edep_diag_matrix(VS,A,epCu,epNi):
     row = []
     col = []
     idxs = np.zeros(dim)
-
     for i in range(0,dim):
-        diag_el = 0.
+        diag_el = 0
         state = VS.get_state(VS.lookup_tbl[i])
 
         orb1 = state['hole1_orb']
@@ -769,58 +819,20 @@ def create_edep_diag_matrix(VS,A,epCu,epNi):
         orb3 = state['hole3_orb']
         x1, y1, z1 = state['hole1_coord']
         x2, y2, z2 = state['hole2_coord'] 
-        x2, y2, z2 = state['hole3_coord']                      #修改引入
-
-
-        nNi, nO, nCu, dorbs, porbs = util.get_statistic_3orb(orb1,orb2,orb3)
-        
-        # d7 is not allowed in VS
-            # d8L
-        if ((nNi==2) or (nCu==2) or (nCu==1 and nCu==1)) and nO==1 :
-            if (o1 in pam.Ni_orbs) or (o2 in pam.Ni_orbs) or (o3 in pam.Ni_orbs):
-                diag_el += pam.ed[dorbs[0]] + pam.ed[dorbs[1]] + epNi
-                idxs[i] = 1
-            if (o1 in pam.Cu_orbs) or (o2 in pam.Cu_orbs) or (o3 in pam.Cu_orbs):
-                diag_el += pam.ed[dorbs[0]] + pam.ed[dorbs[1]] + epCu
-                idxs[i] = 1
-
-            #if i>=1051 and i<=1060:
-            #    print i, diag_el
-
-        # d9L2
-        if (nNi==1 or nCu==1)and nO==2:
-            if (o1 in pam.Ni_orbs and o2 in pam.Ni_orbs) or (o1 in pam.Ni_orbs and o3 in pam.Ni_orbs)  or (o2 in pam.Ni_orbs and o3 in pam.Ni_orbs):
-                diag_el += pam.ed[dorbs[0]] + 2.*epNi
-                idxs[i] = 1
-            if (o1 in pam.Ni_orbs and o2 in pam.Cu_orbs) or (o1 in pam.Cu_orbs and o2 in pam.Ni_orbs) or (o1 in pam.Ni_orbs and o3 in pam.Cu_orbs) or (o1 in pam.Cu_orbs and o3 in pam.Ni_orbs) or (o2 in pam.Ni_orbs and o3 in pam.Cu_orbs) or (o2 in pam.Cu_orbs and o3 in pam.Ni_orbs) :
-                diag_el += pam.ed[dorbs[0]] + epNi + epCu
-                idxs[i] = 1
-            if (o1 in pam.Cu_orbs and o2 in pam.Cu_orbs) or (o1 in pam.Cu_orbs and o3 in pam.Cu_orbs) or (o2 in pam.Cu_orbs and o3 in pam.Cu_orbs):
-                diag_el += pam.ed[dorbs[0]] + 2.*epCu
-                idxs[i] = 1
-
-        # d10L3
-        if nNi==0 and nO==3: 
-            if o1 in pam.Ni_orbs and o2 in pam.Ni_orbs and o3 in pam.Ni_orbs:
-                diag_el += 3.*epNi                                       
-                idxs[i] = 1
-            if (o1 in pam.Ni_orbs and o2 in pam.Ni_orbs and o3 in pam.Cu_orbs)  or (o1 in pam.Ni_orbs and o2 in pam.Cu_orbs and o3 in pam.Ni_orbs)  or (o1 in pam.Cu_orbs and o2 in pam.Ni_orbs and o3 in pam.Ni_orbs):
-                diag_el += 2.*epNi+epCu                                   
-                idxs[i] = 1
-            if (o1 in pam.Cu_orbs and o2 in pam.Ni_orbs and o3 in pam.Cu_orbs)  or (o1 in pam.Ni_orbs and o2 in pam.Cu_orbs and o3 in pam.Cu_orbs)  or (o1 in pam.Cu_orbs and o2 in pam.Cu_orbs and o3 in pam.Ni_orbs):
-                diag_el +=epNi+ 2.*epCu                                   
-                idxs[i] = 1
-            if o1 in pam.Cu_orbs and o2 in pam.Cu_orbs and o3 in pam.Cu_orbs:
-                diag_el += 3.*epCu                                       
-                idxs[i] = 1
-
-        data.append(diag_el); row.append(i); col.append(i)
-        #print i, diag_el
+        x3, y3, z3 = state['hole3_coord']                     
+        diag_el = np.zeros(4)
+        diag_el[0] = util.get_orb_edep(orb1,z1,epCu,epNi)
+        diag_el[1] = util.get_orb_edep(orb2,z2,epCu,epNi)
+        diag_el[2] = util.get_orb_edep(orb3,z3,epCu,epNi)
+        diag_el[3] = diag_el[0] + diag_el[1] + diag_el[2]
+        data.append(diag_el[3]); row.append(i); col.append(i)
+#         print (i, diag_el)
 
     row = np.array(row)
     col = np.array(col)
     data = np.array(data)
-    #print min(data)
+#     print (min(data))
+#     print (max(data))    
     #print len(row), len(col)
     
    # for ii in range(0,len(row)):
@@ -835,61 +847,58 @@ def create_edep_diag_matrix(VS,A,epCu,epNi):
     
 def get_double_occu_list(VS):
     '''
-    Get the list of states that three holes are both d or p-orbitals
+    Get the list of states that two holes are both d or p-orbitals
+    idx, hole3state, dp_orb, dp_pos record detailed info of states
     '''
     dim = VS.dim
-    d_list = []
-    p_list = []
+    d_list = []; p_list = []
+    idx = []; hole3_part = []; double_part = []
     
     for i in range(0,dim):
         state = VS.get_state(VS.lookup_tbl[i])
         s1 = state['hole1_spin']
         s2 = state['hole2_spin']
         s3 = state['hole3_spin']
-        orb1 = state['hole1_orb']
-        orb2 = state['hole2_orb']
-        orb3 = state['hole3_orb']
+        o1 = state['hole1_orb']
+        o2 = state['hole2_orb']
+        o3 = state['hole3_orb']
         x1, y1, z1 = state['hole1_coord']
         x2, y2, z2 = state['hole2_coord']
         x3, y3, z3 = state['hole3_coord']
-
-        nNi, nO, nCu, dorbs, porbs = util.get_statistic_3orb(orb1,orb2,orb3)
-
-        if (x1,y1,z1) == (x2,y2,z2):
-            if orb1 in pam.Ni_orbs and orb2 in pam.Ni_orbs:
+        
+        # find out which two holes are on Ni/Cu
+        # idx is to label which hole is not on Ni/Cu
+        if (x1, y1, z1)==(x2, y2, z2):
+            if o1 in pam.Ni_Cu_orbs:
                 d_list.append(i)
-                #print "d_double: one_eh", i, se,orbe,xe,ye,s1,orb1,x1,y1,s2,orb2,x2,y2,s3,orb3,x3,y3
-            elif orb1 in pam.Cu_orbs and orb2 in pam.Cu_orbs:
-                d_list.append(i)
-            elif orb1 in pam.O_orbs and orb2 in pam.O_orbs:
+                idx.append(3); hole3_part.append([s3, o3, x3, y3, z3])
+                double_part.append([s1,o1,x1,y1,z1,s2,o2,x2,y2,z2])
+            elif o1 in pam.O_orbs:
                 p_list.append(i)
-                #print "p_double: ", s1,orb1,x1,y1,s2,orb2,x2,y2
-
-        if (x1,y1,z1) == (x3,y3,z3):
-            if orb1 in pam.Ni_orbs and orb3 in pam.Ni_orbs:
+            
+        elif (x1, y1, z1)==(x3, y3, z3):
+            if o1 in pam.Ni_Cu_orbs:
                 d_list.append(i)
-                #print "d_double: one_eh", i, se,orbe,xe,ye,s1,orb1,x1,y1,s2,orb2,x2,y2,s3,orb3,x3,y3
-            elif orb1 in pam.Cu_orbs and orb3 in pam.Cu_orbs:
-                d_list.append(i)
-            elif orb1 in pam.O_orbs and orb3 in pam.O_orbs:
+                idx.append(2); hole3_part.append([s2, o2, x2, y2, z2])
+                double_part.append([s1,o1,x1,y1,z1,s3,o3,x3,y3,z3])
+            elif o1 in pam.O_orbs:
                 p_list.append(i)
-
-        if (x2,y2,z2) == (x3,y3,z3):
-            if orb2 in pam.Ni_orbs and orb3 in pam.Ni_orbs:
+                
+        elif (x2, y2, z2)==(x3, y3, z3):
+            if o2 in pam.Ni_Cu_orbs:
                 d_list.append(i)
-                #print "d_double: one_eh", i, se,orbe,xe,ye,s1,orb1,x1,y1,s2,orb2,x2,y2,s3,orb3,x3,y3
-            elif orb2 in pam.Cu_orbs and orb3 in pam.Cu_orbs:
-                d_list.append(i)
-            elif orb2 in pam.O_orbs and orb3 in pam.O_orbs:
+                idx.append(1); hole3_part.append([s1, o1, x1, y1, z1])
+                double_part.append([s2,o2,x2,y2,z2,s3,o3,x3,y3,z3])
+            elif o2 in pam.O_orbs:
                 p_list.append(i)
-
             
     print ("len(d_list)", len(d_list))
     print ("len(p_list)", len(p_list))
     
-    return d_list, p_list
+    return d_list, p_list, double_part, idx, hole3_part
 
-def create_interaction_matrix_ALL_syms(VS,d_double,p_double,S_val, Sz_val, AorB_sym, A, Upp):
+def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole3_part, \
+                                       S_val, Sz_val, AorB_sym, ACu, ANi, Upp):
     '''
     Create Coulomb-exchange interaction matrix of d-multiplets including all symmetries
     
@@ -915,123 +924,99 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,S_val, Sz_val, AorB_
     channels = ['1A1','1A2','3A2','1B1','3B1','1E','3E','1B2','3B2']
 
     for sym in channels:
-        state_order, interaction_mat, Stot, Sz_set, AorB = get_interaction_mat(A, sym)
-        sym_orbs = state_order.keys()
         #print "orbitals in sym ", sym, "= ", sym_orbs
 
-        for i in d_double:
-            # state is original state but its orbital info remains after basis change
-            state = VS.get_state(VS.lookup_tbl[i])
-            is1 = state['hole1_spin']
-            is2 = state['hole2_spin']
-            is3 = state['hole3_spin']
-            io1 = state['hole1_orb']
-            io2 = state['hole2_orb']
-            io3 = state['hole3_orb']
-            ix1, iy1, iz1 = state['hole1_coord']
-            ix2, iy2, iz2 = state['hole2_coord']
-            ix3, iy3, iz3 = state['hole3_coord']
+        for i, double_id in enumerate(d_double):
+            count = []
+            s1 = double_part[i][0]
+            o1 = double_part[i][1]
+            s2 = double_part[i][5]
+            o2 = double_part[i][6]
+            z1 = double_part[i][4]
+            dpos = double_part[i][2:5]
 
-                        # find out which two holes are on Ni
-            # idx is to label which hole is not on Ni
-            if io1 not in pam.Ni_orbs and io1 not in pam.Cu_orbs:
-                assert(io1 in pam.O_orbs)
-                io1=io2; io2=io3; idxi=1
-                iLspin=is1; iLorb=io1; iLpos=[ix1, iy1, iz1]
-            elif io2 not in pam.Ni_orbs and io2 not in pam.Cu_orbs:
-                assert(io2 in pam.O_orbs)
-                io2=io3; idxi=2
-                iLspin=is2; iLorb=io2; iLpos=[ix2, iy2, iz2]
-            else:
-                assert(io3 in pam.O_orbs)
-                idxi=3
-                iLspin=is3; iLorb=io3; iLpos=[ix3, iy3, iz3]
+            o12 = sorted([o1,o2])
+            o12 = tuple(o12)
+                
+            if z1==1:
+                state_order, interaction_mat, Stot, Sz_set, AorB = get_interaction_mat(ANi, sym)
+            elif z1==0:
+                state_order, interaction_mat, Stot, Sz_set, AorB = get_interaction_mat(ACu, sym)
+                
+            sym_orbs = state_order.keys()
+            
+            # S_val, Sz_val obtained from basis.create_singlet_triplet_basis_change_matrix
+            S12  = S_val[double_id]
+            Sz12 = Sz_val[double_id]
 
-        o12 = sorted([io1,io2])
-        o12 = tuple(o12)
-
-        # S_val, Sz_val obtained from basis.create_singlet_triplet_basis_change_matrix
-        S12  = S_val[i]
-        Sz12 = Sz_val[i]
-
-        # continue only if (o1,o2) is within desired sym
-        if o12 not in sym_orbs or S12!=Stot or Sz12 not in Sz_set:
-            continue
-
-        if (io1==io2=='dxz' or io1==io2=='dyz') and AorB_sym[i]!=AorB:
-            continue
-
-        # get the corresponding index in sym for setting up matrix element
-        idx1 = state_order[o12]
-
-        for j in d_double:
-            if j<i:
+            # continue only if (o1,o2) is within desired sym
+            if o12 not in sym_orbs or S12!=Stot or Sz12 not in Sz_set:
                 continue
 
-            state = VS.get_state(VS.lookup_tbl[j])
-#             jtype = state['type']
+            if (o1==o2=='dxz' or o1==o2=='dyz'):                                                        #revised
+                if AorB_sym[double_id]!=AorB:
+                    continue
 
-#             if jtype!=itype:
-#                 continue                 
-
-
-            js1 = state['hole1_spin']
-            js2 = state['hole2_spin']
-            js3 = state['hole3_spin']
-            jo1 = state['hole1_orb']
-            jo2 = state['hole2_orb']
-            jo3 = state['hole3_orb']
-            jx1, jy1, jz1 = state['hole1_coord']
-            jx2, jy2, jz2 = state['hole2_coord']
-            jx3, jy3, jz3 = state['hole3_coord']
-
-
-            # find out which two holes are on Ni
-            if jo1 not in pam.Ni_orbs and jo1 not in pam.Cu_orbs:
-                assert(jo1 in pam.O_orbs)
-                jo1=jo2; jo2=jo3; idxj=1
-                jLspin=js1; jLorb=jo1; jLpos=[jx1, jy1, jz1]
-            elif jo2 not in pam.Ni_orbs and jo2 not in pam.Cu_orbs:
-                assert(jo2 in pam.O_orbs)
-                jo2=jo3; idxj=2
-                jLspin=js2; jLorb=jo2; jLpos=[jx2, jy2, jz2]
-            else:
-                assert(jo3 in pam.O_orbs)
-                idxj=3
-                jLspin=js3; jLorb=jo3; jLpos=[jx3, jy3, jz3]
-
-            if not (idxi==idxj and jLspin==iLspin and jLorb==iLorb and jLpos==iLpos):
-                continue    
-
-            o34 = sorted([jo1,jo2])
-            o34 = tuple(o34)
-            S34  = S_val[j]
-            Sz34 = Sz_val[j]
-
-            if (jo1==jo2=='dxz' or jo1==jo2=='dyz') and AorB_sym[j]!=AorB:
-                continue
-
-            # only same total spin S and Sz state have nonzero matrix element
-            if o34 in sym_orbs and S34==S12 and Sz34==Sz12:
-                idx2 = state_order[o34]
-
-                #print o12[0],o12[1],S12,Sz12," ",o34[0],o34[1],S34,Sz34," ", interaction_mat[idx1][idx2]
-                #print idx1, idx2
-
+            # get the corresponding index in sym for setting up matrix element
+            idx1 = state_order[o12]
+            
+            '''
+            Below: generate len(sym_orbs) states that interact with i for a particular sym
+            '''
+            # some sym have only 1x1 matrix, e.g. 3B1, 3B2 etc. 
+            # so that do not need find idx2
+            if len(sym_orbs)==1:
+                idx2 = idx1
                 val = interaction_mat[idx1][idx2]
-                data.append(val); row.append(i); col.append(j)
+                data.append(val); row.append(double_id); col.append(double_id)                        
+            else:
+                for idx2, o34 in enumerate(sym_orbs):
+                    # ('dyz','dyz') is degenerate with ('dxz','dxz') for D4h 
+                    if o34==('dyz','dyz'):
+                        continue
 
-                # make symmetric interaction matrix
-                if j!=i:
-                    data.append(val); row.append(j); col.append(i)
+                    for s1 in ('up','dn'):
+                        for s2 in ('up','dn'):                        
+                            if idx[i]==3:
+                                slabel = [s1,o34[0]]+dpos + [s2,o34[1]]+dpos + hole3_part[i]
+                            if idx[i]==2:
+                                slabel = [s1,o34[0]]+dpos + hole3_part[i] + [s2,o34[1]]+dpos 
+                            if idx[i]==1:
+                                slabel = hole3_part[i] + [s1,o34[0]]+dpos + [s2,o34[1]]+dpos 
+                                
+                            if not vs.check_Pauli(slabel):
+                                continue
+
+                            tmp_state = vs.create_state(slabel)
+                            new_state,_ = vs.make_state_canonical(tmp_state)
+                            j = VS.get_index(new_state)
+
+
+                            if j!=None and j not in count:
+                                S34  = S_val[j]
+                                Sz34 = Sz_val[j]
+
+                                if not (S34==S12 and Sz34==Sz12):
+                                    continue
+
+                                if o34==('dxz','dxz') or o34==('dyz','dyz'):
+                                    if AorB_sym[j]!=AorB:
+                                        continue
+
+            #                     print (idx1,idx2) 
+                                val = interaction_mat[idx1][idx2]
+                                data.append(val); row.append(double_id); col.append(j)
 
     # Create Upp matrix for p-orbital multiplets
-    for i in p_double:
-        data.append(Upp); row.append(i); col.append(i)
+    if Upp!=0:
+        for i in p_double:
+            data.append(Upp); row.append(i); col.append(i)
 
     row = np.array(row)
     col = np.array(col)
     data = np.array(data)
+    
+    #print(data)
     
     # check if hoppings occur within groups of (up,up), (dn,dn), and (up,dn) 
     #assert(check_spin_group(row,col,data,VS)==True)

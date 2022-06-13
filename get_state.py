@@ -14,9 +14,6 @@ import lattice as lat
 import variational_space as vs 
 import utility as util
 
-#####################################################################
-
-
 ############################################################################
 def get_d8L_state_indices(VS,d_double,S_val, Sz_val):
     '''
@@ -47,9 +44,9 @@ def get_d8L_state_indices(VS,d_double,S_val, Sz_val):
         x2, y2, z2 = state['hole2_coord']
         x3, y3, z3 = state['hole3_coord']
             
-        nNi, nO, nCu , dorbs, porbs = util.get_statistic_3orb(o1,o2,o3)
+        nNi_Cu, nO, dorbs, porbs = util.get_statistic_3orb(o1,o2,o3)
             
-        if not ((nNi==2 or nCu==2 or (nNi==1 and nCu==1)) and nO==1):
+        if not (nNi_Cu==2 and nO==1):
             continue
             
         orbs = [o1,o2,o3]
@@ -98,7 +95,7 @@ def get_d9L2_state_indices(VS):
     dim = VS.dim
     d9L2_state_indices = []; d9L2_state_labels = []
     
-    for i in xrange(0,dim):
+    for i in range(0,dim):
         # state is original state but its orbital info remains after basis change
         state = VS.get_state(VS.lookup_tbl[i])
         itype = state['type']
@@ -114,9 +111,9 @@ def get_d9L2_state_indices(VS):
         x2, y2, z2 = state['hole2_coord']
         x3, y3, z3 = state['hole3_coord']
 
-        nNi, nO, nCu , dorbs, porbs = util.get_statistic_3orb(o1,o2,o3)
+        nNi_Cu, nO, dorbs, porbs = util.get_statistic_3orb(o1,o2,o3)
             
-        if not ((nNi==1 or nCu==1) and nO==2):
+        if not (nNi_Cu==1 and nO==2):
             continue
             
         orbs = [o1,o2,o3]
@@ -132,7 +129,7 @@ def get_d9L2_state_indices(VS):
         if not (abs(xs[idx]-1.0)<1.e-3 and abs(ys[idx])<1.e-3):
             continue
             
-        if dorbs[0]=='dx2y2' and se=='up':
+        if dorbs[0]=='dx2y2' :
             d9L2s_state_indices.append(i); d9L2_state_labels.append('$d^9_{x^2-y^2}L^2s$')
             print ("d9L2_state_indices", i, ", state: orb= ", o1,o2,o3)
 
