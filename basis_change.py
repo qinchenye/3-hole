@@ -98,14 +98,15 @@ def create_singlet_triplet_basis_change_matrix_d_double(VS, d_double, double_par
             break
 
         elif s1=='up' and s2=='dn':
-            if o1==o2:               
-                # get state as (e1e1 +- e2e2)/sqrt(2) for A and B sym separately 
-                # instead of e1e1 and e2e2
+            if o1==o2: 
                 if o1!='dxz' and o1!='dyz':
                     data.append(np.sqrt(2.0));  row.append(double_id); col.append(double_id)
                     S_val[double_id]  = 0
                     Sz_val[double_id] = 0
                     count_singlet += 1
+                    
+                # get state as (e1e1 +- e2e2)/sqrt(2) for A and B sym separately 
+                # instead of e1e1 and e2e2
                 elif o1=='dxz':  # no need to consider e2='dyz' case
                     # generate paired e2e2 state:
                     if idx[i]==3:
@@ -122,7 +123,7 @@ def create_singlet_triplet_basis_change_matrix_d_double(VS, d_double, double_par
                     data.append(1.0);  row.append(double_id);  col.append(double_id)
                     data.append(1.0);  row.append(e2); col.append(double_id)
                     AorB_sym[double_id]  = 1
-                    S_val[double_id]  = 0                                                                            #revised
+                    S_val[double_id]  = 0                                                                            
                     Sz_val[double_id] = 0
                     count_singlet += 1
                     data.append(1.0);  row.append(double_id);  col.append(e2)
@@ -141,7 +142,7 @@ def create_singlet_triplet_basis_change_matrix_d_double(VS, d_double, double_par
                     #             partner state col j stores triplet
                     data.append(1.0);  row.append(double_id); col.append(double_id)
                     data.append(-ph);  row.append(j); col.append(double_id)
-                    S_val[double_id]  = 0                                                                      #revised
+                    S_val[double_id]  = 0                                                                      
                     Sz_val[double_id] = 0
 
                     #print "partner states:", i,j

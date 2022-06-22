@@ -20,6 +20,7 @@ def get_ground_state(matrix, VS, S_val,Sz_val):
     Obtain the ground state info, namely the lowest peak in Aw_dd's component
     in particular how much weight of various d8 channels: a1^2, b1^2, b2^2, e^2
     '''        
+    t1 = time.time()
     print ('start getting ground state')
 #     # in case eigsh does not work but matrix is actually small, e.g. Mc=1 (CuO4)
 #     M_dense = matrix.todense()
@@ -55,17 +56,14 @@ def get_ground_state(matrix, VS, S_val,Sz_val):
             
         print ('eigenvalue = ', vals[k])
         indices = np.nonzero(abs(vecs[:,k])>0.05)
-        wgt_d8 = np.zeros(6)
-        wgt_d9L = np.zeros(6)
-        wgt_d10L2 = np.zeros(2)
 
         print ("Compute the weights in GS (lowest Aw peak)")
         #for i in indices[0]:
         for i in range(0,len(vecs[:,k])):
             # state is original state but its orbital info remains after basis change
             state = VS.get_state(VS.lookup_tbl[i])
+            weight = abs(vecs[i,k])**2
             
-           
             s1 = state['hole1_spin']
             s2 = state['hole2_spin']
             s3 = state['hole3_spin']
@@ -85,9 +83,12 @@ def get_ground_state(matrix, VS, S_val,Sz_val):
             o12 = tuple(o12)
 
             if i in indices[0]:
-                print (' state ', orb1,s1,x1,y1,z1,orb2,s2,x2,y2,z2,orb3,s3,x3,y3,z3 ,'S=',S12,'Sz=',Sz12,", weight = ", abs(vecs[i,k])**2)
+                print (' state ', i, orb1,s1,x1,y1,z1,orb2,s2,x2,y2,z2,orb3,s3,x3,y3,z3, \
+                       'S=',S12,'Sz=',Sz12,", weight = ", weight)
                 
-    return vals, vecs, wgt_d8, wgt_d9L, wgt_d10L2
+    print("--- get_ground_state %s seconds ---" % (time.time() - t1))
+                
+    return vals, vecs
 
 #########################################################################
     # set up Lanczos solver

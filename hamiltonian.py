@@ -3,6 +3,7 @@ Functions for constructing individual parts of the Hamiltonian. The
 matrices still need to be multiplied with the appropriate coupling 
 constants t_pd, t_pp, etc..
 '''
+import time
 import parameters as pam
 import lattice as lat
 import variational_space as vs 
@@ -716,7 +717,7 @@ def create_tz_matrix(VS,tz_fac):
         if orbs1 == ['NotOnSublattice']:
             continue
 
-        # consider t_pd for all cases; when up hole hops, dn hole should not change orb
+        # consider t_z for all cases; when up hole hops, dn hole should not change orb
         for o1 in orbs1:          
             if o1!=orb1:
                 continue
@@ -799,7 +800,7 @@ def create_tz_matrix(VS,tz_fac):
     return out
 
    
-def create_edep_diag_matrix(VS,ANi,ACu,epCu,epNi):
+def create_edep_diag_matrix(VS,ANi,ACu,epNi,epCu):
     '''
     Create diagonal part of the site energies
     '''    
@@ -809,8 +810,8 @@ def create_edep_diag_matrix(VS,ANi,ACu,epCu,epNi):
     data = []
     row = []
     col = []
-    idxs = np.zeros(dim)
-    for i in range(0,dim):
+    
+    for i in range(dim):
         diag_el = 0
         state = VS.get_state(VS.lookup_tbl[i])
 
@@ -819,13 +820,13 @@ def create_edep_diag_matrix(VS,ANi,ACu,epCu,epNi):
         orb3 = state['hole3_orb']
         x1, y1, z1 = state['hole1_coord']
         x2, y2, z2 = state['hole2_coord'] 
-        x3, y3, z3 = state['hole3_coord']                     
-        diag_el = np.zeros(4)
-        diag_el[0] = util.get_orb_edep(orb1,z1,epCu,epNi)
-        diag_el[1] = util.get_orb_edep(orb2,z2,epCu,epNi)
-        diag_el[2] = util.get_orb_edep(orb3,z3,epCu,epNi)
-        diag_el[3] = diag_el[0] + diag_el[1] + diag_el[2]
-        data.append(diag_el[3]); row.append(i); col.append(i)
+        x3, y3, z3 = state['hole3_coord']    
+        
+        diag_el += util.get_orb_edep(orb1,z1,epCu,epNi)
+        diag_el += util.get_orb_edep(orb2,z2,epCu,epNi)
+        diag_el += util.get_orb_edep(orb3,z3,epCu,epNi)
+        
+        data.append(diag_el); row.append(i); col.append(i)
 #         print (i, diag_el)
 
     row = np.array(row)
@@ -869,27 +870,27 @@ def get_double_occu_list(VS):
         # find out which two holes are on Ni/Cu
         # idx is to label which hole is not on Ni/Cu
         if (x1, y1, z1)==(x2, y2, z2):
-            if o1 in pam.Ni_Cu_orbs:
+            if o1 in pam.Ni_Cu_orbs and o2 in pam.Ni_Cu_orbs:
                 d_list.append(i)
                 idx.append(3); hole3_part.append([s3, o3, x3, y3, z3])
                 double_part.append([s1,o1,x1,y1,z1,s2,o2,x2,y2,z2])
-            elif o1 in pam.O_orbs:
+            elif o1 in pam.O_orbs and o2 in pam.O_orbs:
                 p_list.append(i)
             
         elif (x1, y1, z1)==(x3, y3, z3):
-            if o1 in pam.Ni_Cu_orbs:
+            if o1 in pam.Ni_Cu_orbs and o3 in pam.Ni_Cu_orbs:
                 d_list.append(i)
                 idx.append(2); hole3_part.append([s2, o2, x2, y2, z2])
                 double_part.append([s1,o1,x1,y1,z1,s3,o3,x3,y3,z3])
-            elif o1 in pam.O_orbs:
+            elif o1 in pam.O_orbs and o3 in pam.O_orbs:
                 p_list.append(i)
                 
         elif (x2, y2, z2)==(x3, y3, z3):
-            if o2 in pam.Ni_Cu_orbs:
+            if o2 in pam.Ni_Cu_orbs and o3 in pam.Ni_Cu_orbs:
                 d_list.append(i)
                 idx.append(1); hole3_part.append([s1, o1, x1, y1, z1])
                 double_part.append([s2,o2,x2,y2,z2,s3,o3,x3,y3,z3])
-            elif o2 in pam.O_orbs:
+            elif o2 in pam.O_orbs and o3 in pam.O_orbs:
                 p_list.append(i)
             
     print ("len(d_list)", len(d_list))
@@ -912,7 +913,8 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
     2. i and j's spins are same; or L and s should also have same spin
     3. Positions of L and Nd-electron should also be the same
     '''    
-    #print "start create_interaction_matrix"
+    t1 = time.time()
+    print ("start create_interaction_matrix")
     
     Norb = pam.Norb
     dim = VS.dim
@@ -927,7 +929,8 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
         #print "orbitals in sym ", sym, "= ", sym_orbs
 
         for i, double_id in enumerate(d_double):
-            count = []
+            count = []  # store states interacting with double_id to avoid double count
+            
             s1 = double_part[i][0]
             o1 = double_part[i][1]
             s2 = double_part[i][5]
@@ -961,51 +964,51 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
             idx1 = state_order[o12]
             
             '''
-            Below: generate len(sym_orbs) states that interact with i for a particular sym
+            Below: generate len(sym_orbs) states that interact with double_id for a particular sym
             '''
             # some sym have only 1x1 matrix, e.g. 3B1, 3B2 etc. 
             # so that do not need find idx2
-            if len(sym_orbs)==1:
-                idx2 = idx1
-                val = interaction_mat[idx1][idx2]
-                data.append(val); row.append(double_id); col.append(double_id)                        
-            else:
-                for idx2, o34 in enumerate(sym_orbs):
-                    # ('dyz','dyz') is degenerate with ('dxz','dxz') for D4h 
-                    if o34==('dyz','dyz'):
-                        continue
+            for idx2, o34 in enumerate(sym_orbs):
+                # ('dyz','dyz') is degenerate with ('dxz','dxz') for D4h 
+                if o34==('dyz','dyz'):
+                    idx2 -= 1
 
-                    for s1 in ('up','dn'):
-                        for s2 in ('up','dn'):                        
-                            if idx[i]==3:
-                                slabel = [s1,o34[0]]+dpos + [s2,o34[1]]+dpos + hole3_part[i]
-                            if idx[i]==2:
-                                slabel = [s1,o34[0]]+dpos + hole3_part[i] + [s2,o34[1]]+dpos 
-                            if idx[i]==1:
-                                slabel = hole3_part[i] + [s1,o34[0]]+dpos + [s2,o34[1]]+dpos 
-                                
-                            if not vs.check_Pauli(slabel):
+                # Because VS's make_state_canonical follows the rule of up, dn order
+                # then the state like ['up', 'dxy', 0, 0, 0, 'dn', 'dx2y2', 0, 0, 0]'s
+                # order order is opposite to (dx2y2,dxy) order in interteration_mat
+                # Here be careful with o34's order that can be opposite to o12 !!
+                
+                for s1 in ('up','dn'):
+                    for s2 in ('up','dn'):
+                        if idx[i]==3:
+                            slabel = [s1,o34[0]]+dpos + [s2,o34[1]]+dpos + hole3_part[i]
+                        if idx[i]==2:
+                            slabel = [s1,o34[0]]+dpos + hole3_part[i] + [s2,o34[1]]+dpos 
+                        if idx[i]==1:
+                            slabel = hole3_part[i] + [s1,o34[0]]+dpos + [s2,o34[1]]+dpos 
+
+                        if not vs.check_Pauli(slabel):
+                            continue
+
+                        tmp_state = vs.create_state(slabel)
+                        new_state,_ = vs.make_state_canonical(tmp_state)
+                        j = VS.get_index(new_state)
+
+                        if j!=None and j not in count:
+                            S34  = S_val[j]
+                            Sz34 = Sz_val[j]
+
+                            if not (S34==S12 and Sz34==Sz12):
                                 continue
 
-                            tmp_state = vs.create_state(slabel)
-                            new_state,_ = vs.make_state_canonical(tmp_state)
-                            j = VS.get_index(new_state)
-
-
-                            if j!=None and j not in count:
-                                S34  = S_val[j]
-                                Sz34 = Sz_val[j]
-
-                                if not (S34==S12 and Sz34==Sz12):
+                            if o34==('dxz','dxz') or o34==('dyz','dyz'):
+                                if AorB_sym[j]!=AorB:
                                     continue
 
-                                if o34==('dxz','dxz') or o34==('dyz','dyz'):
-                                    if AorB_sym[j]!=AorB:
-                                        continue
-
-            #                     print (idx1,idx2) 
-                                val = interaction_mat[idx1][idx2]
-                                data.append(val); row.append(double_id); col.append(j)
+        #                     print (idx1,idx2) 
+                            val = interaction_mat[idx1][idx2]
+                            data.append(val); row.append(double_id); col.append(j)
+                            count.append(j)
 
     # Create Upp matrix for p-orbital multiplets
     if Upp!=0:
@@ -1022,4 +1025,6 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
     #assert(check_spin_group(row,col,data,VS)==True)
     out = sps.coo_matrix((data,(row,col)),shape=(dim,dim))
 
+    print("--- create_interaction_matrix_ALL_syms %s seconds ---" % (time.time() - t1))
+    
     return out

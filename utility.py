@@ -111,15 +111,14 @@ def get_orb_edep(orb,z,epCu,epNi):
     '''
     resarch for orb's edep
     ''' 
-    diag_el = 0
     if orb in pam.Ni_Cu_orbs and z==1: 
-        diag_el += pam.edNi[orb]
+        diag_el = pam.edNi[orb]
     elif orb in pam.Ni_Cu_orbs and z==0: 
-        diag_el += pam.edCu[orb]  
+        diag_el = pam.edCu[orb]  
     elif orb in pam.O_orbs and z==1: 
-        diag_el += epNi
+        diag_el = epNi
     elif orb in pam.O_orbs and z==0: 
-        diag_el += epCu
+        diag_el = epCu
     return diag_el
     
 def get_d_double_3hole(VS, i):

@@ -35,7 +35,7 @@ def create_state(slabel):
     assert not (((x3,y3,z3))==(x1,y1,z1) and s3==s1 and orb3==orb1)
     assert not (((x1,y1,z1))==(x2,y2,z2) and s1==s2 and orb1==orb2)
     assert not (((x3,y3,z3))==(x2,y2,z2) and s3==s2 and orb3==orb2)
-   
+    
     assert(check_in_vs_condition1(x1,y1,x2,y2,x3,y3))
 
     state = {'hole1_spin' : s1,\
@@ -66,16 +66,17 @@ def reorder_state(slabel):
         state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
         phase = -1.0
         
-    # note that z1 can differ from z2 in the presence of apical pz orbital
-    elif (x1,y1)==(x2,y2):           
-        if s1==s2 and z1==z2:
-            o12 = list(sorted([orb1,orb2]))
-            if o12[0]==orb2:
-                state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
-                phase = -1.0  
-        elif s1=='dn' and s2=='up' and z1==z2:
-            state_label = ['up',orb2,x2,y2,z2,'dn',orb1,x1,y1,z1]
-            phase = -1.0
+    # note that z1 can differ from z2 in the presence of two layers
+    elif (x1,y1)==(x2,y2):     
+        if z1==z2:
+            if s1==s2:
+                o12 = list(sorted([orb1,orb2]))
+                if o12[0]==orb2:
+                    state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
+                    phase = -1.0  
+            elif s1=='dn' and s2=='up':
+                state_label = ['up',orb2,x2,y2,z2,'dn',orb1,x1,y1,z1]
+                phase = -1.0
         elif z1==0 and z2==1:
             state_label = [s2,orb2,x2,y2,z2,s1,orb1,x1,y1,z1]
             phase = -1.0  
@@ -253,9 +254,9 @@ class VariationalSpace:
             torb1 = state['hole1_orb']
             torb2 = state['hole2_orb']
             torb3 = state['hole3_orb']
-            tx1, y1, z1 = state['hole1_coord']
-            tx2, y2, z2 = state['hole2_coord']
-            tx3, y3, z3 = state['hole3_coord']
+            tx1, ty1, tz1 = state['hole1_coord']
+            tx2, ty2, tz2 = state['hole2_coord']
+            tx3, ty3, tz3 = state['hole3_coord']
             print (i, ts1,torb1,tx1,ty1,tz1,ts2,torb2,tx2,ty2,ts3,torb3,tx3,ty3,tz3)
                 
     def create_lookup_tbl(self):
