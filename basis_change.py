@@ -26,7 +26,7 @@ def find_singlet_triplet_partner_d_double(VS, d_part, index, h3_part):
         slabel = ['up']+d_part[6:10] + ['dn']+d_part[1:5] + h3_part 
                         
     tmp_state = vs.create_state(slabel)
-    partner_state,_ = vs.make_state_canonical(tmp_state)
+    partner_state,_,_ = vs.make_state_canonical(tmp_state)
     phase = -1.0
     
     return VS.get_index(partner_state), phase
@@ -117,7 +117,7 @@ def create_singlet_triplet_basis_change_matrix_d_double(VS, d_double, double_par
                         slabel = hole3_part[i] + [s1,'dyz']+dpos + [s2,'dyz']+dpos
                         
                     tmp_state = vs.create_state(slabel)
-                    new_state,_ = vs.make_state_canonical(tmp_state)
+                    new_state,_,_ = vs.make_state_canonical(tmp_state)
                     e2 = VS.get_index(new_state)
                         
                     data.append(1.0);  row.append(double_id);  col.append(double_id)

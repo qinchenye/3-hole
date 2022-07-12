@@ -157,7 +157,7 @@ def make_state_canonical(state):
     slabel = tmp+tmp23[5:10]
     canonical_state = create_state(slabel)
                 
-    return canonical_state, phase
+    return canonical_state, phase,slabel
 
 def calc_manhattan_dist(x1,y1,x2,y2):
     '''
@@ -331,7 +331,7 @@ class VariationalSpace:
                                                                         continue  
 
                                                                     state = create_state(slabel)
-                                                                    canonical_state,_ = make_state_canonical(state)
+                                                                    canonical_state,_,_ = make_state_canonical(state)
 
                                                                     if self.filter_func(canonical_state):
                                                                         uid = self.get_uid(canonical_state)

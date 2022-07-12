@@ -472,7 +472,7 @@ def create_tpd_nn_matrix(VS, tpd_nn_hop_dir, tpd_orbs, tpd_nn_hop_fac):
 
                     slabel = [s1,o1,x1+vx,y1+vy,z1+vz,s2,orb2,x2,y2,z2,s3,orb3,x3,y3,z3]    
                     tmp_state = vs.create_state(slabel)
-                    new_state,ph = vs.make_state_canonical(tmp_state)
+                    new_state,ph,_ = vs.make_state_canonical(tmp_state)
                     #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                     o12 = tuple([orb1, dir_, o1])
@@ -501,7 +501,7 @@ def create_tpd_nn_matrix(VS, tpd_nn_hop_dir, tpd_orbs, tpd_nn_hop_fac):
                     
                     slabel = [s1,orb1,x1,y1,z1,s2,o2,x2+vx,y2+vy,z2+vz,s3,orb3,x3,y3,z3]
                     tmp_state = vs.create_state(slabel)
-                    new_state,ph = vs.make_state_canonical(tmp_state)
+                    new_state,ph,_ = vs.make_state_canonical(tmp_state)
                     #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                     o12 = tuple([orb2, dir_, o2])
@@ -529,7 +529,7 @@ def create_tpd_nn_matrix(VS, tpd_nn_hop_dir, tpd_orbs, tpd_nn_hop_fac):
                     
                     slabel = [s1,orb1,x1,y1,z1,s2,orb2,x2,y2,z2,s3,o3,x3+vx,y3+vy,z3+vz]
                     tmp_state = vs.create_state(slabel)
-                    new_state,ph = vs.make_state_canonical(tmp_state)
+                    new_state,ph,_ = vs.make_state_canonical(tmp_state)
                     #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                     o12 = tuple([orb3, dir_, o3])
@@ -595,7 +595,7 @@ def create_tpp_nn_matrix(VS,tpp_nn_hop_fac):
 
                     slabel = [s1,o1,x1+vx,y1+vy,z1+vz,s2,orb2,x2,y2,z2,s3,orb3,x3,y3,z3]    
                     tmp_state = vs.create_state(slabel)
-                    new_state,ph = vs.make_state_canonical(tmp_state)
+                    new_state,ph,_ = vs.make_state_canonical(tmp_state)
                     #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
 #                     s1n = new_state['hole1_spin']                                                shan
@@ -635,7 +635,7 @@ def create_tpp_nn_matrix(VS,tpp_nn_hop_fac):
                     
                     slabel = [s1,orb1,x1,y1,z1,s2,o2,x2+vx,y2+vy,z2+vz,s3,orb3,x3,y3,z3]
                     tmp_state = vs.create_state(slabel)
-                    new_state,ph = vs.make_state_canonical(tmp_state)
+                    new_state,ph,_ = vs.make_state_canonical(tmp_state)
                     #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
 
@@ -665,7 +665,7 @@ def create_tpp_nn_matrix(VS,tpp_nn_hop_fac):
                    
                     slabel = [s1,orb1,x1,y1,z1,s2,orb2,x2,y2,z2,s3,o3,x3+vx,y3+vy,z3+vz]
                     tmp_state = vs.create_state(slabel)
-                    new_state,ph = vs.make_state_canonical(tmp_state)
+                    new_state,ph,_ = vs.make_state_canonical(tmp_state)
                     #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                     o12 = sorted([orb3, dir_, o3])
@@ -733,7 +733,7 @@ def create_tz_matrix(VS,tz_fac):
             if o12 in tz_orbs:
                 slabel = [s1,o1,x1,y1,1-z1,s2,orb2,x2,y2,z2,s3,orb3,x3,y3,z3]
                 tmp_state = vs.create_state(slabel)
-                new_state,ph = vs.make_state_canonical(tmp_state)
+                new_state,ph,_ = vs.make_state_canonical(tmp_state)
                 #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                 set_matrix_element(row,col,data,new_state,i,VS,tz_fac[o12]*ph)
@@ -759,7 +759,7 @@ def create_tz_matrix(VS,tz_fac):
             if o12 in tz_orbs:
                 slabel = [s1,orb1,x1,y1,z1,s2,o2,x2,y2,1-z2,s3,orb3,x3,y3,z3]
                 tmp_state = vs.create_state(slabel)
-                new_state,ph = vs.make_state_canonical(tmp_state)
+                new_state,ph,_ = vs.make_state_canonical(tmp_state)
                 #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                 set_matrix_element(row,col,data,new_state,i,VS,tz_fac[o12]*ph)
@@ -784,7 +784,7 @@ def create_tz_matrix(VS,tz_fac):
             if o12 in tz_orbs:
                 slabel = [s1,orb1,x1,y1,z1,s2,orb2,x2,y2,z2,s3,o3,x3,y3,1-z3]
                 tmp_state = vs.create_state(slabel)
-                new_state,ph = vs.make_state_canonical(tmp_state)
+                new_state,ph,_ = vs.make_state_canonical(tmp_state)
                 #new_state,ph = vs.make_state_canonical_old(tmp_state)
 
                 set_matrix_element(row,col,data,new_state,i,VS,tz_fac[o12]*ph)
@@ -991,7 +991,7 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
                             continue
 
                         tmp_state = vs.create_state(slabel)
-                        new_state,_ = vs.make_state_canonical(tmp_state)
+                        new_state,_,_ = vs.make_state_canonical(tmp_state)
                         j = VS.get_index(new_state)
 
                         if j!=None and j not in count:
