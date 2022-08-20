@@ -58,7 +58,7 @@ elif Norb==9 or Norb==11:
 #     pps = 0.01
 #     ppp = 0.01
 
-tzs =np.arange(0.01, 10.1 , 0.5)                                                                             #gai
+tzs =np.arange(1.5, 1.8 , 0.5)                                                                             #gai
     
 wmin = 0; wmax = 15
 eta = 0.02

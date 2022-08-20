@@ -930,7 +930,7 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
 
         for i, double_id in enumerate(d_double):
             count = []  # store states interacting with double_id to avoid double count
-            
+           
             s1 = double_part[i][0]
             o1 = double_part[i][1]
             s2 = double_part[i][5]
@@ -948,6 +948,7 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
                 
             sym_orbs = state_order.keys()
             
+            
             # S_val, Sz_val obtained from basis.create_singlet_triplet_basis_change_matrix
             S12  = S_val[double_id]
             Sz12 = Sz_val[double_id]
@@ -956,7 +957,7 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
             if o12 not in sym_orbs or S12!=Stot or Sz12 not in Sz_set:
                 continue
 
-            if (o1==o2=='dxz' or o1==o2=='dyz'):                                                        #revised
+            if (o1==o2=='dxz' or o1==o2=='dyz'): 
                 if AorB_sym[double_id]!=AorB:
                     continue
 
@@ -969,10 +970,11 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
             # some sym have only 1x1 matrix, e.g. 3B1, 3B2 etc. 
             # so that do not need find idx2
             for idx2, o34 in enumerate(sym_orbs):
+#                 print (count) 
                 # ('dyz','dyz') is degenerate with ('dxz','dxz') for D4h 
                 if o34==('dyz','dyz'):
                     idx2 -= 1
-
+  
                 # Because VS's make_state_canonical follows the rule of up, dn order
                 # then the state like ['up', 'dxy', 0, 0, 0, 'dn', 'dx2y2', 0, 0, 0]'s
                 # order order is opposite to (dx2y2,dxy) order in interteration_mat
@@ -994,6 +996,7 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
                         new_state,_,_ = vs.make_state_canonical(tmp_state)
                         j = VS.get_index(new_state)
 
+
                         if j!=None and j not in count:
                             S34  = S_val[j]
                             Sz34 = Sz_val[j]
@@ -1005,8 +1008,8 @@ def create_interaction_matrix_ALL_syms(VS,d_double,p_double,double_part,idx,hole
                                 if AorB_sym[j]!=AorB:
                                     continue
 
-        #                     print (idx1,idx2) 
                             val = interaction_mat[idx1][idx2]
+#                             print (double_id,j,val)                            
                             data.append(val); row.append(double_id); col.append(j)
                             count.append(j)
 
